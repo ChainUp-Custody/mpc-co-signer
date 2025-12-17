@@ -17,7 +17,7 @@ This document details how to deploy the MPC Co-Signer service in a Linux environ
     - **SGX Support**: SGX support must be enabled in BIOS, and appropriate drivers installed.
 - **Network Requirements**:
   - Must be able to access ChainUp Custody API (`https://openapi.chainup.com`)
-  - Must open internal ports for business system calls (default 28888)
+  - Must open internal ports for Custody system calls (default 28888)
 
 ## 2. Preparation
 
