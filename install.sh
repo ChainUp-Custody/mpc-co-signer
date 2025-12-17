@@ -112,7 +112,7 @@ esac
 
 echo ""
 APP_ID=""
-echo -e "App id can be found in https://waas.chainup.com/mpc/center/api."
+echo -e "App id can be found in https://custody.chainup.com/mpc/center/api."
 echo -n "Please enter app id: "
 read APP_ID
 
