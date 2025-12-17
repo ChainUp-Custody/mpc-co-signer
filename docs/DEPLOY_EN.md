@@ -24,7 +24,7 @@ This document details how to deploy the MPC Co-Signer service in a Linux environ
 Before starting deployment, please ensure you have:
 
 1. Registered on the ChainUp Custody platform and obtained an `App ID`.
-2. Prepared interface URLs for receiving withdrawal callbacks and Web3 transaction callbacks (optional).
+2. Prepared interface URLs for receiving withdrawal callbacks and Web3(optional) transaction callbacks .
 3. Obtained the ChainUp RSA Public Key (available from the Custody management platform).
 
 ## 3. Automated Deployment (Recommended)
