@@ -4,7 +4,7 @@ This document details how to deploy the MPC Co-Signer service in a Linux environ
 
 ## 1. Environment Requirements
 
-- **Operating System**: Linux (Ubuntu 20.04+ recommended, Ubuntu 22.04 recommended for SGX mode)
+- **Operating System**: Linux (Ubuntu 22.04 recommended)
 - **Hardware Configuration**:
   - **Development/Test Environment**:
     - CPU: 2 Core+
