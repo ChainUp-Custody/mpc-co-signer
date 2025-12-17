@@ -17,7 +17,7 @@
     - **SGX 支持**: BIOS 中需开启 SGX 支持，并安装相应驱动。
 - **网络要求**:
   - 需能够访问 ChainUp Custody API (`https://openapi.chainup.com`)
-  - 需开放内部端口供业务系统调用 (默认 28888)
+  - 需开放内部端口供Custody业务系统调用 (默认 28888)
 
 ## 2. 准备工作
 
