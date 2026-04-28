@@ -91,5 +91,7 @@ Changing the password directly is currently not supported. If you need to change
 ### Update Program
 
 1. Stop the service: `./stop.sh`
-2. Replace the `co-signer` binary file.
-3. Start the service: `./startup.sh`
+2. Download the latest version co-signer-linux-vx.x.x
+3. For sgx server exec command: `ego sign co-signer && ego bundle co-signer co-signer.sgx && mv co-signer.sgx co-signer && chmod +x co-signer`
+4. Just replace the `co-signer` binary file if not SGX server.
+5. Start the service: `./startup.sh`
