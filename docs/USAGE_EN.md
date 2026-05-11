@@ -64,6 +64,26 @@ Import the public key used to verify withdrawal signatures.
 ./co-signer -verify-sign-pub-import <key_string>
 ```
 
+### Password Management Tools
+
+#### Change Password
+
+Change the Co-Signer startup password. This re-encrypts all encrypted fields in `keystore.json` with the new password.
+
+```bash
+./co-signer -change-password
+```
+
+Process:
+
+1. Enter the current password (verifies it can decrypt the existing keystore)
+2. Enter the new password
+3. Confirm the new password
+4. Automatically backs up old `keystore.json` as `keystore.json.bak`
+5. Re-encrypts all key data with the new password
+
+> **Note**: After changing the password, use the new password when starting via `startup.sh`.
+
 ### Network and Diagnostic Tools
 
 #### 1. Check Configuration
@@ -86,12 +106,52 @@ Check if the local IP is in the Custody whitelist and verify connectivity with t
 
 ### Change Password
 
-Changing the password directly is currently not supported. If you need to change the password, you need to re-run `install.sh` or manually regenerate `keystore.json`.
+Use the built-in command-line tool to change the password:
+
+```bash
+./co-signer -change-password
+```
+
+After completion, the old `keystore.json` is automatically backed up as `keystore.json.bak`. Use the new password when starting the service next time.
 
 ### Update Program
 
+#### Standard Mode
+
 1. Stop the service: `./stop.sh`
-2. Download the latest version co-signer-linux-vx.x.x
-3. For sgx server exec command: `ego sign co-signer && ego bundle co-signer co-signer.sgx && mv co-signer.sgx co-signer && chmod +x co-signer`
-4. Just replace the `co-signer` binary file if not SGX server.
+2. Back up existing files:
+   ```bash
+   cp co-signer co-signer.bak
+   ```
+3. Replace the `co-signer` binary (use the `mpc-co-signer-static-linux` version).
+4. Verify configuration:
+   ```bash
+   ./co-signer -check-conf
+   ```
 5. Start the service: `./startup.sh`
+
+#### SGX Mode
+
+1. Stop the service: `./stop.sh`
+2. Back up existing files:
+   ```bash
+   cp co-signer co-signer.bak
+   ```
+3. Download the new binary (use the `mpc-co-signer-linux` non-static version).
+4. Re-sign and bundle the SGX Enclave:
+   ```bash
+   ./sgx-build.sh
+   # Enter the binary file name when prompted, e.g.: co-signer
+   # Output will be a timestamped file, e.g.: co-signer.20260508143025
+   ```
+5. Rename the generated file to `co-signer`:
+   ```bash
+   mv co-signer.20260508143025 co-signer
+   ```
+6. Verify configuration:
+   ```bash
+   ./co-signer -check-conf
+   ```
+7. Start the service: `./startup.sh`
+
+> **Note**: `sgx-build.sh` generates a timestamped binary (e.g., `co-signer.20260508143025`). Use `mv` to rename it to `co-signer` so it matches the file name in `startup.sh`.
