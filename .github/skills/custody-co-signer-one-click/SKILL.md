@@ -353,11 +353,13 @@ Co-Signer 地址: http://<SERVER_IP>:28888
 初始密码: <PASSWORD>
 
 ⚠️ 安全操作清单:
-1. 立即修改密码: cd <安装目录> && ./co-signer -reset-password
-2. 修改 withdraw_callback_url: 编辑 conf/config.yaml 中 custom_service.withdraw_callback_url=<真实回调地址>
-3. 重启服务: ./stop.sh && ./startup.sh
-4. 在 Custody APP 分享签名私钥
-5. 删除 AI Agent SSH 权限
+1. **立即修改密码** — SSH 到 co-signer 服务器，进入安装目录，使用 `./co-signer -reset-password` 修改初始密码为自定义强密码。
+2. **修改 `withdraw_callback_url` 为真实回调地址** — 编辑安装目录下 `conf/config.yaml`，将 `custom_service.withdraw_callback_url` 改为生产可用的真实回调 URL。
+3. **修改密码后立即重启 Co-Signer** — 在安装目录执行 `./stop.sh` 然后 `./startup.sh`，输入新密码启动服务。
+4. **配置网络防火墙并验证连通性**
+   - 防火墙规则: 入站 `54.254.7.206 → 28888`，出站 `→ 54.251.87.91:443`
+5. **在 Custody APP 分享签名私钥** — 进入 Custody APP → Co-Signer 管理界面，完成签名私钥分享。参考: [Co-Signer FAQ](https://custodydocs-en.chainup.com/user-guide/mpc-wallet/api-integration/co-signer#frequently-asked-questions)
+6. **删除 AI Agent 的 SSH 权限** — 从服务器 `~/.ssh/authorized_keys` 中移除 agent 使用的 SSH 公钥。
 ════════════════════════════════════════════════════════════
 ```
 
