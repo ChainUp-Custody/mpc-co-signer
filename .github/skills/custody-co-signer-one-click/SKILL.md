@@ -225,6 +225,9 @@ If any boundary is not satisfied, the agent must stop and resolve that specific 
    - Use `2` only when SGX capability is actually present; otherwise use `1`.
    - Always use the latest version regardless of OS.
 
+- **SGX binary rule**: during deployment phases (Phase 1-Phase 3 pre-bundle), run co-signer with a normal runnable binary (non-static preferred; static allowed as fallback for deployment operations).
+- **Do NOT bundle with ego in Phase 1**. Ego bundling is a post-deployment replacement step in Phase 3.
+
 - Pre-download the selected binary before installation.
 - If `./co-signer` already exists, it must still pass a version check against the selected target tag (default latest). Reuse only on exact match; otherwise force re-download.
 
@@ -306,7 +309,7 @@ If any boundary is not satisfied, the agent must stop and resolve that specific 
       ```
       Expected: Custody server calls the co-signer's ping endpoint. If this fails, firewall rules need adjustment.
     - If either test fails, display the required firewall rules and stop.
-14. **[SGX ONLY] Bundle co-signer with ego for SGX deployment** via [cosigner_remote_ops.py](./scripts/cosigner_remote_ops.py):
+14. **[SGX ONLY] Post-deploy replacement: bundle non-static co-signer with ego and replace runtime binary** via [cosigner_remote_ops.py](./scripts/cosigner_remote_ops.py):
 
     This step is **required for SGX deployments** (INSTALL_TYPE=2) and **skipped for standard deployments** (INSTALL_TYPE=1).
 
@@ -317,12 +320,13 @@ If any boundary is not satisfied, the agent must stop and resolve that specific 
 
     **What this step does**:
     - Checks if `ego` is installed; if not, automatically installs it (supports apt-get and yum)
+    - Ensures the bundling input is a **non-static** co-signer binary (if current binary is static, re-download the same-version non-static binary first)
     - Verifies if co-signer is already SGX bundled (via `./co-signer -v` output)
     - Calculates heap size based on available server memory (92% of available RAM)
     - Generates an `enclave.json` configuration for the SGX enclave
     - Signs the co-signer binary using `ego sign`
     - Bundles the signed binary using `ego bundle`
-    - Replaces the original binary with the bundled SGX version
+    - Replaces the deployment-stage normal/static binary with the bundled SGX runtime binary
     - The bundled co-signer is now ready for production use via `./startup.sh`
 
     **Output indicators**:
@@ -409,7 +413,7 @@ All scripts are in `./scripts/` — agent MUST use these instead of ad-hoc inlin
 - Phase 2 first queries `GET /api/mpc/api/detail?wallet_id=<ID>` to check if an API already exists.
   - **API does not exist**: create via `POST /api/mpc/api/save` with co-signer RSA, IP, URL → prompt user to approve in Custody APP → extract real `APPID` and `ChainUp RSA Public Key` after approval confirmed.
   - **API already exists**: compare Console config against current server state: `co_signer_rsa` (exact match vs `./co-signer -show-rsa`), `believe_ips` (containment check — is server IP already in the comma-separated list?), `co_signer_url` (exact match). If any mismatch → update via `POST /api/mpc/api/save` with existing `app_id` → prompt user to approve in Custody APP → verify updated fields via `GET /api/mpc/api/detail`. For `believe_ips`, **append** missing IPs at the end, never overwrite existing entries. If all match → skip update.
-- Phase 3 updates the co-signer config file (`sed` for `app_id`, callback URLs) and imports the real ChainUp RSA public key via `./co-signer -custody-pub-import`.
+- Phase 3 updates the co-signer config file (`sed` for `app_id`, callback URLs) and imports the real ChainUp RSA public key via `./co-signer -custody-pub-import`. For SGX deployments, complete deployment with normal runnable co-signer first, then use ego to bundle a non-static co-signer and replace the deployment-stage binary.
 - Network connectivity verification:
   - Outbound: `curl -s https://openapi.chainup.com/api/ping` from co-signer server
   - Inbound: `curl -s "https://custody.chainup.com/api/mpc/api/cosigner/ping?wallet_id=<WORKSTATION_ID>"` with cookie auth
@@ -443,9 +447,9 @@ export REMOTE_WORKDIR='/data/co-signer'
 
 ### Deployment Flow (3-Phase)
 
-- **Phase 1**: Deploy co-signer with mock `APP_ID` and mock `CHAINUP_PUBLIC_KEY`. The goal is to get the co-signer RSA public key. No cookie or Console access needed.
+- **Phase 1**: Deploy co-signer with mock `APP_ID` and mock `CHAINUP_PUBLIC_KEY`. The goal is to get the co-signer RSA public key. For SGX, use a normal runnable co-signer binary during deployment (non-static preferred; static fallback allowed). No cookie or Console access needed.
 - **Phase 2**: Query Console API to check if API exists. If not, create via `POST /api/mpc/api/save`. If exists, compare `co_signer_rsa` (exact), `believe_ips` (containment — is server IP in list?), `co_signer_url` (exact) against current server state — update only if any mismatch. For `believe_ips`, append missing IPs, never overwrite. After save returns `code: "0"`, prompt user to approve in Custody APP via `vscode_askQuestions`, then verify via `GET /api/mpc/api/detail`. Extract real APPID and ChainUp RSA public key.
-- **Phase 3**: SSH to co-signer server, update `conf/config.yaml` with real `app_id` (via `sed`), import real ChainUp RSA public key (via `./co-signer -custody-pub-import`). Then verify network connectivity.
+- **Phase 3**: SSH to co-signer server, update `conf/config.yaml` with real `app_id` (via `sed`), import real ChainUp RSA public key (via `./co-signer -custody-pub-import`). For SGX, after deployment/config is complete, use ego to bundle a **non-static** co-signer and replace the deployment-stage binary. Then verify network connectivity.
 
 ### API Behavior
 
@@ -588,7 +592,9 @@ project_path=$(
     cd $(dirname $0)
     pwd
 )
-- **Phase 3**: SSH to co-signer server, update `conf/config.yaml` with real `app_id` (via `sed`), import real ChainUp RSA public key (via `./co-signer -custody-pub-import`). **For SGX deployments** (INSTALL_TYPE=2), bundle co-signer with ego (auto-installs ego if needed, signs and bundles binary, replaces original with bundled version). Then verify network connectivity. Finally, stop any co-signer processes.
+
+STR_PASSWORD=""
+echo -n "Please enter your password:"
 stty -echo
 read STR_PASSWORD
 stty echo
