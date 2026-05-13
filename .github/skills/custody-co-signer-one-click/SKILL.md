@@ -306,7 +306,32 @@ If any boundary is not satisfied, the agent must stop and resolve that specific 
       ```
       Expected: Custody server calls the co-signer's ping endpoint. If this fails, firewall rules need adjustment.
     - If either test fails, display the required firewall rules and stop.
-14. **Clean up deployment processes** via [cosigner_remote_ops.py](./scripts/cosigner_remote_ops.py):
+14. **[SGX ONLY] Bundle co-signer with ego for SGX deployment** via [cosigner_remote_ops.py](./scripts/cosigner_remote_ops.py):
+
+    This step is **required for SGX deployments** (INSTALL_TYPE=2) and **skipped for standard deployments** (INSTALL_TYPE=1).
+
+    ```bash
+    python scripts/cosigner_remote_ops.py --ssh-cmd "$SSH_CMD" --action bundle-ego \
+        --install-type "2" --workdir "$REMOTE_WORKDIR/mpc-co-signer"
+    ```
+
+    **What this step does**:
+    - Checks if `ego` is installed; if not, automatically installs it (supports apt-get and yum)
+    - Verifies if co-signer is already SGX bundled (via `./co-signer -v` output)
+    - Calculates heap size based on available server memory (92% of available RAM)
+    - Generates an `enclave.json` configuration for the SGX enclave
+    - Signs the co-signer binary using `ego sign`
+    - Bundles the signed binary using `ego bundle`
+    - Replaces the original binary with the bundled SGX version
+    - The bundled co-signer is now ready for production use via `./startup.sh`
+
+    **Output indicators**:
+    - `BUNDLE_STATUS=SUCCESS` → bundling completed successfully
+    - If already bundled → skips the bundling process with a message
+
+    **Security note**: The `private.pem` signing key is auto-generated on the server if not present. This key is used only for signing and remains on the server.
+
+15. **Clean up deployment processes** via [cosigner_remote_ops.py](./scripts/cosigner_remote_ops.py):
 
     ```bash
     python scripts/cosigner_remote_ops.py --ssh-cmd "$SSH_CMD" --action stop \
@@ -317,14 +342,14 @@ If any boundary is not satisfied, the agent must stop and resolve that specific 
 
     ⚠️ **Mandatory**: This step must run even if no co-signer process appears to be running. It is a hard gate before the success banner.
 
-15. Package secret output with [bundle script](./scripts/generate_secret_bundle.sh).
+16. Package secret output with [bundle script](./scripts/generate_secret_bundle.sh).
     - Payload is built **entirely in memory** — never written to disk as plaintext.
     - Encrypt with `CUSTOM_VERIFY_PUBLIC_KEY`, return ciphertext + keys + co-signer RSA summary.
 
 ### Phase 4: Display Password & Security Checklist
 
-16. Display the plaintext password to the user with a highlighted security banner.
-17. Display the **安装目录路径** (e.g. `/data/co-signer/mpc-co-signer`) so the customer knows where all co-signer files are located.
+17. Display the plaintext password to the user with a highlighted security banner.
+18. Display the **安装目录路径** (e.g. `/data/co-signer/mpc-co-signer`) so the customer knows where all co-signer files are located.
 
 **Post-deployment security checklist** (display to user):
 
@@ -367,13 +392,13 @@ Co-Signer 地址: http://<SERVER_IP>:28888
 
 All scripts are in `./scripts/` — agent MUST use these instead of ad-hoc inline commands.
 
-| Script                                                           | Purpose                                                         | Key Arguments                                                              |
-| ---------------------------------------------------------------- | --------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| [deploy_remote_install.sh](./scripts/deploy_remote_install.sh)   | Phase 1: Remote deploy co-signer binary, config, RSA keypair    | `SSH_CMD`, `APP_ID`, `CHAINUP_PUBLIC_KEY`, `INSTALL_TYPE`, etc. (env vars) |
-| [get_custody_cookie.py](./scripts/get_custody_cookie.py)         | Phase 2: Headless Playwright QR login → extract `COINXMAN-SSO`  | `--timeout`, `--qr-path`                                                   |
-| [console_api_ops.py](./scripts/console_api_ops.py)               | Phase 2: Console API operations (detail/save/list)              | `--cookie`, `--action`, `--wallet-id`, etc.                                |
-| [cosigner_remote_ops.py](./scripts/cosigner_remote_ops.py)       | Phase 3: Remote co-signer operations (start/stop/import/health) | `--ssh-cmd`, `--action`, `--password` (via stdin)                          |
-| [generate_secret_bundle.sh](./scripts/generate_secret_bundle.sh) | Phase 4: Generate encrypted secret bundle                       | env vars for payload fields                                                |
+| Script                                                           | Purpose                                                                    | Key Arguments                                                                        |
+| ---------------------------------------------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| [deploy_remote_install.sh](./scripts/deploy_remote_install.sh)   | Phase 1: Remote deploy co-signer binary, config, RSA keypair               | `SSH_CMD`, `APP_ID`, `CHAINUP_PUBLIC_KEY`, `INSTALL_TYPE`, etc. (env vars)           |
+| [get_custody_cookie.py](./scripts/get_custody_cookie.py)         | Phase 2: Headless Playwright QR login → extract `COINXMAN-SSO`             | `--timeout`, `--qr-path`                                                             |
+| [console_api_ops.py](./scripts/console_api_ops.py)               | Phase 2: Console API operations (detail/save/list)                         | `--cookie`, `--action`, `--wallet-id`, etc.                                          |
+| [cosigner_remote_ops.py](./scripts/cosigner_remote_ops.py)       | Phase 3: Remote co-signer operations (start/stop/import/bundle-ego/health) | `--ssh-cmd`, `--action`, `--password` (via stdin), `--install-type` (for bundle-ego) |
+| [generate_secret_bundle.sh](./scripts/generate_secret_bundle.sh) | Phase 4: Generate encrypted secret bundle                                  | env vars for payload fields                                                          |
 
 **Critical**: `cosigner_remote_ops.py` passes password through `subprocess.run(input=...)` stdin pipe. Agent MUST use this script for any operation requiring the password — never pass password in SSH command strings.
 
@@ -563,9 +588,7 @@ project_path=$(
     cd $(dirname $0)
     pwd
 )
-
-STR_PASSWORD=""
-echo -n "Please enter your password:"
+- **Phase 3**: SSH to co-signer server, update `conf/config.yaml` with real `app_id` (via `sed`), import real ChainUp RSA public key (via `./co-signer -custody-pub-import`). **For SGX deployments** (INSTALL_TYPE=2), bundle co-signer with ego (auto-installs ego if needed, signs and bundles binary, replaces original with bundled version). Then verify network connectivity. Finally, stop any co-signer processes.
 stty -echo
 read STR_PASSWORD
 stty echo
