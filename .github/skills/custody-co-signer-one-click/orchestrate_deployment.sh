@@ -92,7 +92,7 @@ create_console_api() {
   believe_ips_value="${believe_ips_value:-54.254.7.206}"
 
   if [[ -z "${GOOGLE_CODE:-}" ]]; then
-    read -p "Enter google_code for Console API creation: " GOOGLE_CODE
+    read -p "Enter The Custody App google_code for Console API creation: " GOOGLE_CODE
   fi
   google_code_value="${GOOGLE_CODE:-}"
   if [[ -z "$google_code_value" ]]; then

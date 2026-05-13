@@ -44,7 +44,7 @@ The agent automates most actions, but user interaction is still required at spec
 
 4. Enter Google verification code only at save time
 
-- User provides `google_code` only when agent is about to call `POST /api/mpc/api/save`.
+- User provides Custody App `google_code` only when agent is about to call `POST /api/mpc/api/save`.
 - Do not provide it early (short validity window).
 
 5. Approve request in Custody App

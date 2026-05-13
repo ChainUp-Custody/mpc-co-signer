@@ -44,7 +44,7 @@ Agent 会自动执行绝大多数步骤，但以下节点需要用户参与：
 
 4. 在保存 API 前一刻输入 Google 验证码
 
-- 仅在即将调用 `POST /api/mpc/api/save` 时输入 `google_code`。
+- 仅在即将调用 `POST /api/mpc/api/save` 时输入Custody App `google_code`。
 - 不要提前提供（有效期很短）。
 
 5. 在 Custody App 中审批

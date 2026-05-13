@@ -259,7 +259,7 @@ If any boundary is not satisfied, the agent must stop and resolve that specific 
    - `developer_rsa`: same as `co_signer_rsa`
    - `google_code`: ask user **at this moment only** (30s validity)
      b. Submit triggers approval workflow.
-     c. **Prompt user to approve in APP**: Tell the user the API creation request has been submitted and they must open the Custody APP to approve it. Use `vscode_askQuestions` to wait for user confirmation (options: "Approved" / "Rejected"). Do NOT proceed until the user confirms approval.
+     c. **Prompt user to approve in APP**: Tell the user the API creation request has been submitted and the wallet owner must open the Custody APP to approve it. Use `vscode_askQuestions` to wait for user confirmation (options: "Approved" / "Rejected"). Do NOT proceed until the user confirms approval.
      d. After user confirms approval, call `GET /api/mpc/api/detail?wallet_id=<ID>` to verify the API was created and extract the real **APPID**.
 9. **If API already exists** (`app_id` is non-empty) → **Update branch**:
    a. Retrieve current values from Console API response: `co_signer_rsa`, `believe_ips`, `co_signer_url`.
@@ -275,7 +275,7 @@ If any boundary is not satisfied, the agent must stop and resolve that specific 
    - `believe_ips`: **append** server IP to existing list if not already present (preserve all existing IPs, comma-separated). **Never overwrite** — only append missing IPs at the end.
    - `co_signer_url`: `http://<SERVER_IP>:28888`
    - `google_code`: ask user **at this moment only**
-     e. **Prompt user to approve in APP**: Tell the user the API update request has been submitted and they must open the Custody APP to approve it. Use `vscode_askQuestions` to wait for user confirmation (options: "Approved" / "Rejected"). Do NOT proceed until the user confirms approval.
+     e. **Prompt user to approve in APP**: Tell the user the API update request has been submitted and the wallet owner must open the Custody APP to approve it. Use `vscode_askQuestions` to wait for user confirmation (options: "Approved" / "Rejected"). Do NOT proceed until the user confirms approval.
      f. After user confirms approval, call `GET /api/mpc/api/detail?wallet_id=<ID>` to verify the updated fields (especially `co_signer_rsa`) match the expected values.
      g. If **all fields match** (RSA equal, URL equal, server IP already in believe_ips), skip update — log that API config is already in sync.
 10. From the API detail response, obtain the **ChainUp RSA Public Key** (`system_rsa`) — this is the real Custody RSA public key needed for Phase 3.
@@ -436,13 +436,13 @@ export REMOTE_WORKDIR='/data/co-signer'
 
 After `POST /api/mpc/api/save`, **always diagnose the response code** before deciding next action:
 
-| Response Code | Meaning                                              | Correct Action                                                                                                                                                                                    |
-| ------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `"0"`         | Success                                              | Proceed to next step                                                                                                                                                                              |
-| `"110188"`    | 有未完成的审批单 (uncompleted approval order exists) | Request **was already submitted** and entered approval queue. Do **NOT** re-submit or ask for new google_code. Wait for user to complete approval, then call `GET /api/mpc/api/detail` to verify. |
-| `"110007"`    | Google code error or reuse                           | Code expired (30s validity). Ask user for a **new** google_code and re-submit.                                                                                                                    |
-| `"110909"`    | Login timeout                                        | Cookie expired. Re-acquire cookie via Playwright.                                                                                                                                                 |
-| Other         | Unknown error                                        | Display raw response and stop.                                                                                                                                                                    |
+| Response Code | Meaning                                              | Correct Action                                                                                                                                                                                                |
+| ------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `"0"`         | Success                                              | Proceed to next step                                                                                                                                                                                          |
+| `"110188"`    | 有未完成的审批单 (uncompleted approval order exists) | Request **was already submitted** and entered approval queue. Do **NOT** re-submit or ask for new google_code. Wait for the wallet owner to complete approval, then call `GET /api/mpc/api/detail` to verify. |
+| `"110007"`    | Google code error or reuse                           | Code expired (30s validity). Ask user for a **new** google_code and re-submit.                                                                                                                                |
+| `"110909"`    | Login timeout                                        | Cookie expired. Re-acquire cookie via Playwright.                                                                                                                                                             |
+| Other         | Unknown error                                        | Display raw response and stop.                                                                                                                                                                                |
 
 **Rule**: Never assume a non-zero response means "retry with new google_code". Each error code requires a different action.
 

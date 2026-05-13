@@ -49,7 +49,7 @@ def main():
 
         # Poll until URL leaves /login OR COINXMAN-SSO cookie appears
         cdp = context.new_cdp_session(page)
-        print(f"[INFO] Scan the QR code with Custody App. Waiting up to {args.timeout}s...")
+        print(f"[INFO] Scan the QR code with Custody App（Operating member roles: Wallet member/administrator/owner）. Waiting up to {args.timeout}s...")
         sso_cookie = None
         for i in range(args.timeout):
             # Check URL change
